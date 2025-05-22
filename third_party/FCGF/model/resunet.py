@@ -1,4 +1,4 @@
-# -*- coding: future_fstrings -*-
+# -*- coding: utf-8 -*-
 import torch
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MEF

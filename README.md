@@ -90,6 +90,11 @@ cd MinkowskiEngine
 python setup.py install --blas_include_dirs=${CONDA_PREFIX}/include --blas=openblas
 ```
 
+/home/zoratt/DataDisk/3D_ws/OnlineAnySeg/third_party/MinkowskiEngine/src/mkl_alternate.hpp:35:10: fatal error: cblas.h: 没有那个文件或目录
+   35 | #include <cblas.h>
+      |          ^~~~~~~~~
+compilation terminated.
+error: command '/usr/local/cuda-11.8/bin/nvcc' failed with exit code 1
 
 ## 3. Running
 ### Run a given sequence (demo)

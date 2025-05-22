@@ -1,4 +1,4 @@
-# -*- coding: future_fstrings -*-
+# -*- coding: utf-8 -*-
 #
 # Written by Chris Choy <chrischoy@ai.stanford.edu>
 # Distributed under MIT License
