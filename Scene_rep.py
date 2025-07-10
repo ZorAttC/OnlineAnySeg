@@ -256,6 +256,8 @@ class Scene_rep:
         mask_in_frame_list = mask_in_frame_list_new
 
         mask_num_this_frame = len(valid_mask_ids)
+        if mask_num_this_frame == 0:
+            return [], []
 
         # Step 3: for each newly detected 2D mask, fill the new rows and new cols in Containing_matrix
         for i in range(mask_num_this_frame):

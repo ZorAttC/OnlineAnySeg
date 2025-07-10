@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--instance_dir", type=str, default="./data/grounding_sam_result/scannet/scene0653_00")
     parser.add_argument("--seq_name", default="scene0011_00")
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--output_dir", default="./output")  # output dir of pointcloud/checkpoint/scene_graph
+    parser.add_argument("-o", "--output_dir", default="./output/scannet")
     args = parser.parse_args()
 
     cfg = config.load_config(args.config)

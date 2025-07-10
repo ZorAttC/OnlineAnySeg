@@ -62,7 +62,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="maskformer2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation",
+        default="third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/mask2former_hornet_3x.yaml",
         metavar="FILE",
         help="path to config file",
     )
