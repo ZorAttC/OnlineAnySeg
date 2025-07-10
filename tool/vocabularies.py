@@ -37,4 +37,13 @@ vocabularies = {
         'shower head', 'keyboard piano', 'case of water bottles', 'coat rack', 'storage organizer',
         'folded chair', 'fire alarm', 'power strip', 'calendar', 'poster', 'potted plant', 'luggage', 'mattress'
     ],
+    # NYUv2 40 类标签
+    "sceneNN": [
+    "void", "wall", "floor", "cabinet", "bed", "chair", "sofa", "table", "door", "window",
+    "bookshelf", "picture", "counter", "blinds", "desk", "shelves", "curtain", "dresser",
+    "pillow", "mirror", "floor mat", "clothes", "ceiling", "books", "refrigerator",
+    "television", "paper", "towel", "shower curtain", "box", "whiteboard", "person",
+    "nightstand", "toilet", "sink", "lamp", "bathtub", "bag", "otherstructure",
+    "otherfurniture", "otherprop"
+]
 }

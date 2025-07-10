@@ -839,10 +839,11 @@ class Scene_rep:
         return instance_pts_mask_list
 
 
-    def get_seg_mesh(self, mask_voxels_coords, input_mesh, save_path=None, instance_mask_save_path=None, rgb_list=None):
+    def get_seg_mesh(self, save_path=None, instance_mask_save_path=None, rgb_list=None):
+        verticses, input_mesh = self.get_mesh_vertices(save_path=save_path)  # get vertices of reconstructed mesh
         scene_points = np.asarray(input_mesh.vertices).astype("float32")
         scene_points = torch.from_numpy(scene_points).to(self.device)
-
+        mask_voxels_coords = self.mask_voxels_coords  # list of Tensor(m_i, 3), where m_i is the number of voxels in this mask
         # Step 1: for each extracted scene point, compute its corresponding voxel
         voxelized_scene_points = self.voxel_grids.world_coords2voxel_coords(scene_points).to(self.device)
         point_voxel_indices = self.voxel_grids.voxel_coords2voxel_indices(voxelized_scene_points)

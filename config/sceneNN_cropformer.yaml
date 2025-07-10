@@ -1,5 +1,4 @@
 dataset: "scenenn"
-
 cam:
   img_h: 480
   img_w: 640

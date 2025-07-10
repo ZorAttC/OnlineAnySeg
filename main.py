@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument("--seq_name", default="scene0011_00")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output_dir", default="./output")  # output dir of pointcloud/checkpoint/scene_graph
+    parser.add_argument("--vocab_feature_file", type=str, default="./sceneNN_text_embeddings.pt",)
     args = parser.parse_args()
 
     cfg = config.load_config(args.config)
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     for frame_id, (color_img, depth_img, pose_c2w, seg_image, mask_features, seg_flag) in tqdm(enumerate(dataloader)):
         if max_frame_num is not None and frame_id >= max_frame_num:
             break
-
+        print("frame_id: %d, seg_flag: %s" % (frame_id, seg_flag))
         # @color_img: Tensor(1, H , W, 3), dtype=float32, RGB
         # @depth_img: Tensor(1, H, W), dtype=float32
         # @pose_c2w: Tensor(1, 4, 4), dtype=float32
@@ -100,6 +101,10 @@ if __name__ == '__main__':
     # save finally reconstructed pointcloud
     final_pc_path = os.path.join(local_output_dir, "final.ply")
     scene_rep.save_pc(scene_rep.points, scene_rep.colors, final_pc_path)
+
+    #save mesh result
+    final_mesh_path = os.path.join(local_output_dir, "seg_mesh.ply")
+    scene_rep.get_seg_mesh(save_path=final_mesh_path)
 
     print("Input sequence finished !")
 

@@ -28,7 +28,7 @@ import warnings
 
 from helpers import get_new_pallete, get_cropped_image, pad_into_square, save_mask_images
 warnings.filterwarnings("ignore", category=UserWarning)
-
+import time
 
 """To segment a given RGB-D sequence, getting mask_maps, mask_color_maps, and save the visual embedding of each detected mask"""
 
@@ -168,19 +168,19 @@ class ImageDataset(Dataset):
             img = cv2.resize(img, (self.dst_w, self.dst_h), interpolation=cv2.INTER_NEAREST)  # ndarray(H, W, 3)
         else:
             img = img.copy()
-
+        
+        start= time.time()
         # Step 2: infer on CropFormer
         predictions = self.demo.run_on_image(img)  # ***
         pred_masks = predictions["instances"].pred_masks
         pred_scores = predictions["instances"].scores
-
+        print(f"[INFO] CropFormer inference time: {time.time() - start:.2f} seconds")
         # 2.1: select by confidence threshold
         selected_indexes = (pred_scores >= args.confidence_threshold)
         selected_scores = pred_scores[selected_indexes]  # Tensor(instance_num, ), dtype=float, device=cuda:0
         selected_masks = pred_masks[selected_indexes]  # Tensor(instance_num, H, W), dtype=float, device=cuda:0
 
         return path, img, selected_scores, selected_masks
-
 
 if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)
@@ -231,30 +231,56 @@ if __name__ == "__main__":
         cv2.imwrite(os.path.join(my_dataset.output_mask_dir, os.path.basename(path).split('.')[0] + '.png'), mask_image)
         cv2.imwrite(os.path.join(my_dataset.output_mask_color_dir, os.path.basename(path).split('.')[0] + '.png'), mask_color_image)
 
+        # Step 3: get cropped images and batch encode
         mask_visual_embedding_list = []
-        # Step 3: get cropped image
+        all_images = []
+        mask_image_indices = []  # 记录每个掩码的图像索引范围
+        current_index = 0
+
+        # 3.1: 收集所有掩码的裁剪图像
         for valid_mask_id in valid_mask_ids:
-            # 3.1: get image crop and do multi-scaling
             mask = (mask_image == valid_mask_id)
-            cropped_images = get_cropped_image(mask, img)
-
-            # 3.2: pre-process
+            cropped_images = get_cropped_image(mask, img)  # 假设返回 list of ndarray
             input_images = [preprocess(pad_into_square(Image.fromarray(cropped_image))) for cropped_image in cropped_images]
-            images = torch.stack(input_images)  # Tensor(scale_num, 3, h_padded, w_padded)
+            input_images = torch.stack(input_images).reshape(-1, 3, 224, 224)  # Tensor(scale_num, 3, 224, 224)
+            all_images.append(input_images)
+            mask_image_indices.append((current_index, current_index + input_images.shape[0]))
+            current_index += input_images.shape[0]
 
-            # 3.3: feed this multi-scale image crop to CLIP visual encoder
-            images = images.reshape(-1, 3, 224, 224)  # Tensor(scale_num, 3, 224, 224)
-            image_input = images.cuda()
+        
+        # 3.2: 批处理推理
+        if all_images:
+            all_images = torch.cat(all_images, dim=0)  # Tensor(total_images, 3, 224, 224)
+            batch_size = 16  # 可调整的批大小
+            image_features = []
+            
+            # 分批推理以防止内存溢出
+            
             with torch.no_grad():
-                image_features = model.encode_image(image_input).float()
-                image_features /= image_features.norm(dim=-1, keepdim=True)  # Tensor(scale_num, CLIP_dim)
+                for i in range(0, all_images.shape[0], batch_size):
+                    start= time.time()
+                    batch = all_images[i:i + batch_size].cuda()
+                    features = model.encode_image(batch).float()
+                    features /= features.norm(dim=-1, keepdim=True) + 1e-7  # 归一化
+                    image_features.append(features.cpu())  # 移回 CPU 节省 GPU 内存
+                    print(f"[INFO] CLIP inference time: {time.time() - start:.2f} seconds")
+            
+            image_features = torch.cat(image_features, dim=0)  # Tensor(total_images, CLIP_dim)
 
-            mean_image_feature = image_features.mean(dim=0)  # Tensor(CLIP_dim, )
-            mask_visual_embedding_list.append(mean_image_feature)
+            # 3.3: 分割特征并计算每个掩码的平均特征
+            for start_idx, end_idx in mask_image_indices:
+                mask_features = image_features[start_idx:end_idx]  # Tensor(scale_num, CLIP_dim)
+                mean_feature = mask_features.mean(dim=0)  # Tensor(CLIP_dim,)
+                mask_visual_embedding_list.append(mean_feature)
+        
+        # 3.4: 合并和归一化
+        if mask_visual_embedding_list:
+            mask_visual_embeddings = torch.stack(mask_visual_embedding_list, dim=0)
+            mask_visual_embeddings = mask_visual_embeddings / (mask_visual_embeddings.norm(dim=-1, keepdim=True) + 1e-7)
+        else:
+            mask_visual_embeddings = torch.tensor([])  # 空张量，处理无有效掩码的情况
 
-        mask_visual_embeddings = torch.stack(mask_visual_embedding_list, dim=0)
-        mask_visual_embeddings = mask_visual_embeddings / (mask_visual_embeddings.norm(dim=-1, keepdim=True) + 1e-7)  # normalization for visual embeddings
-
+        # 保存嵌入
         output_embeddings_basename = os.path.basename(path).split('.')[0] + '.pt'
         embeddings_path = os.path.join(my_dataset.output_mask_feature_dir, output_embeddings_basename)
         torch.save(mask_visual_embeddings, embeddings_path)
