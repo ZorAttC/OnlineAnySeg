@@ -22,5 +22,9 @@ readme.txt
 readme_env.txt
 
 # eval/scannet200/validation
-eval
+eval/backup
+eval/scannet200/validation/*
+!eval/scannet200/validation/scannet_gt_seg.zip
+eval/sceneNN/*
+!eval/sceneNN/sceneNN_gt_seg.zip
 
